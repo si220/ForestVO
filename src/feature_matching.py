@@ -1,3 +1,21 @@
+"""
+Perform LightGlue feature matching on directory of image files
+
+inputs:
+    path_to_images (path to directory of images)
+
+outputs:
+    draw_matches() -> OpenCV visualisation of matched features
+    match_img_pair() -> images, matched keypoints and coordinates
+    visualise_feature_matching() -> loops through image files and visualises matched features
+
+usage:
+    python3 feature_matching.py
+
+Author: Saifullah Ijaz
+Date: 23/07/2024
+"""
+
 from globals import *
 
 # disable gradient calculation for faster inference
