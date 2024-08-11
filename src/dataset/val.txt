@@ -1,0 +1,12 @@
+../Datasets/TartanAir/gascola_Easy_image_left/gascola/Easy/P007/
+../Datasets/TartanAir/gascola_Easy_image_right/gascola/Easy/P007/
+../Datasets/TartanAir/gascola_Hard_image_left/gascola/Hard/P008/
+../Datasets/TartanAir/gascola_Hard_image_right/gascola/Hard/P008/
+../Datasets/TartanAir/seasonsforest_Easy_image_left/seasonsforest/Easy/P010/
+../Datasets/TartanAir/seasonsforest_Easy_image_right/seasonsforest/Easy/P010/
+../Datasets/TartanAir/seasonsforest_Hard_image_left/seasonsforest/Hard/P005/
+../Datasets/TartanAir/seasonsforest_Hard_image_right/seasonsforest/Hard/P005/
+../Datasets/TartanAir/seasonsforest_winter_Easy_image_left/seasonsforest_winter/Easy/P008/
+../Datasets/TartanAir/seasonsforest_winter_Easy_image_right/seasonsforest_winter/Easy/P008/
+../Datasets/TartanAir/seasonsforest_winter_Hard_image_left/seasonsforest_winter/Hard/P017/
+../Datasets/TartanAir/seasonsforest_winter_Hard_image_right/seasonsforest_winter/Hard/P017/
