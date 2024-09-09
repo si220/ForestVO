@@ -22,7 +22,7 @@ class PositionalEncoding(nn.Module):
         return x + self.pe[:x.size(0)]
 
 class PoseEstimationTransformer(nn.Module):
-    def __init__(self, input_dim=4, d_model=256, nhead=2, num_encoder_layers=2, dim_feedforward=512, dropout=0.1):
+    def __init__(self, input_dim=4, d_model=128, nhead=2, num_encoder_layers=2, dim_feedforward=256, dropout=0.1):
         super().__init__()
         self.input_projection = nn.Linear(input_dim, d_model)
         self.pos_encoder = PositionalEncoding(d_model)
@@ -31,15 +31,20 @@ class PoseEstimationTransformer(nn.Module):
         self.translation_head = nn.Linear(d_model, 3)
         self.rotation_head = nn.Linear(d_model, 6)
 
-    def forward(self, src_list):
+    def forward(self, src_list, masks):
         translations = []
         rotations = []
-        for src in src_list:
+        for src, mask in zip(src_list, masks):
             src = self.input_projection(src).unsqueeze(1)
-            
             src = self.pos_encoder(src)
             
-            output = self.transformer_encoder(src)
+            # apply bitwise NOT to invert mask
+            src_key_padding_mask = ~mask
+            
+            if src_key_padding_mask.dim() == 1:
+                src_key_padding_mask = src_key_padding_mask.unsqueeze(0)
+
+            output = self.transformer_encoder(src, src_key_padding_mask=src_key_padding_mask)
             
             output = output.mean(dim=0)
             
@@ -50,3 +55,4 @@ class PoseEstimationTransformer(nn.Module):
             rotations.append(rotation.squeeze(0))
 
         return torch.stack(translations), torch.stack(rotations)
+    
