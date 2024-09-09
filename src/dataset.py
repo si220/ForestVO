@@ -11,30 +11,59 @@ from torch.utils.data import Dataset
 from LightGlue.lightglue.utils import load_image
 
 class PoseEstimationDataset(Dataset):
-    def __init__(self, data_seq, feature_matcher, pose_transforms, device) -> None:
+    def __init__(self, data_seq=None, feature_matcher=None, pose_transforms=None, device=None, preprocessed_dir=None, preprocess=False):
         """
-        create list of data sequences from txt file
+        Initialise the dataset either by preprocessing or by loading preprocessed data
+
+        Parameters
+        ----------
+        data_seq : str, optional
+            Path to txt file containing list of which data sequences to use. Required if preprocess=True
+        feature_matcher : class, optional
+            Instance of FeatureMatching() class. Required if preprocess=True
+        pose_transforms : class, optional
+            Instance of PoseTransforms() class. Required if preprocess=True
+        device : torch.device, optional
+            Use GPU if available otherwise CPU. Required if preprocess=True
+        preprocessed_dir : str, optional
+            Path to directory containing preprocessed data. Required if preprocess=False
+        preprocess : bool, optional
+            Whether to preprocess the dataset and save it, or load preprocessed data. Default is False
+        """
+        if preprocess:
+            if not (data_seq and feature_matcher and pose_transforms and device):
+                raise ValueError("data_seq, feature_matcher, pose_transforms, and device are required for preprocessing")
+            
+            self.preprocessed_dir = preprocessed_dir
+            self.feature_matcher = feature_matcher
+            self.pose_transforms = pose_transforms
+            self.device = device
+            self.samples = []
+            self.preprocess_and_save(data_seq)
+
+        else:
+            if not preprocessed_dir:
+                raise ValueError("preprocessed_dir is required for loading preprocessed data")
+            
+            self.samples = [os.path.join(preprocessed_dir, file) for file in sorted(os.listdir(preprocessed_dir))]
+
+    def preprocess_and_save(self, data_seq):
+        """
+        Preprocess the dataset and save the preprocessed data to disk
 
         Parameters
         ----------
         data_seq : str
-            path to txt file containing list of which data sequences to use
-        feature_matcher : class
-            instance of FeatureMatching() class
-        pose_transforms : class
-            instance of PoseTransforms() class
-        device : torch.device
-            use GPU if available otherwise CPU
+            Path to txt file containing list of which data sequences to use
         """
-        self.feature_matcher = feature_matcher
-        self.pose_transforms = pose_transforms
-        self.device = device
-        self.samples = []
+        os.makedirs(self.preprocessed_dir, exist_ok=True)
         
         with open(data_seq, 'r') as file:
             paths = file.readlines()
 
-        # create a list of sample paths without loading the data
+        # initialise counter for sample indices
+        sample_idx = 0
+
         for path in paths:
             path = path.strip()
 
@@ -46,61 +75,71 @@ class PoseEstimationDataset(Dataset):
                 pose_file = os.path.join(path, 'pose_right.txt')
 
             image_files = sorted([img for img in os.listdir(image_dir) if img.endswith('.png')])
-            
+
             for i in range(len(image_files) - 1):
-                self.samples.append({
-                    'img0_path': os.path.join(image_dir, image_files[i]),
-                    'img1_path': os.path.join(image_dir, image_files[i + 1]),
+                img0_path = os.path.join(image_dir, image_files[i])
+                img1_path = os.path.join(image_dir, image_files[i + 1])
+                sample = {
+                    'img0_path': img0_path,
+                    'img1_path': img1_path,
                     'pose_file': pose_file,
-                    'pose_indices': (i, i+1)
-                })
+                    'pose_indices': (i, i + 1)
+                }
+
+                # load images
+                img_0 = load_image(img0_path)
+                img_1 = load_image(img1_path)
+
+                # load poses
+                poses = np.loadtxt(pose_file)
+                pose_0, pose_1 = poses[i], poses[i + 1]
+
+                # get coordinates of matched keypoints
+                kpts_coords = self.feature_matcher.match_img_pair(img_0, img_1)
+
+                # convert poses to transformation matrices
+                transformation_mat_0 = self.pose_transforms.pose_to_mat(pose_0[:3], pose_0[3:])
+                transformation_mat_1 = self.pose_transforms.pose_to_mat(pose_1[:3], pose_1[3:])
+
+                # get relative pose
+                rel_translation, rel_rot_six_d = self.pose_transforms.get_relative_pose(transformation_mat_0, transformation_mat_1)
+
+                # convert to tensors
+                kpts_coords = kpts_coords.float()
+                rel_translation = torch.from_numpy(rel_translation).float()
+                rel_rot_six_d = torch.tensor(rel_rot_six_d).float()
+
+                # save preprocessed data
+                output_path = os.path.join(self.preprocessed_dir, f'sample_{sample_idx}.pt')
+                torch.save({
+                    'kpts_coords': kpts_coords,
+                    'rel_translation': rel_translation,
+                    'rel_rot_six_d': rel_rot_six_d
+                }, output_path)
+                
+                # collect saved file paths
+                self.samples.append(output_path)
+
+                # increment counter
+                sample_idx += 1
 
     def __len__(self):
         return len(self.samples)
 
     def __getitem__(self, idx):
         """
-        This function parses images and gt poses,
-        feature matching is performed on image pairs
-        returns 2D coordinates of matched features, gt relative translation, gt relative rotation
+        Load the preprocessed data
 
         Parameters
         ----------
         idx : int
-            index of data sample
+            Index of the preprocessed sample
 
         Returns
         -------
         kpts_coords, rel_translation, rel_rot_six_d : torch.Tensor, torch.Tensor, torch.Tensor
-            kpts_coords are the 2D coordinates of matched kpts found in both images
-            rel_translation is the relative 3D camera translation given as [x,y,z]
-            rel_rot_six_d is the relative 6D camera rotation given as the first 2 cols of a 3x3 rotation matrix
-            shapes (N,4), (1,3), (1,6)
+            Preprocessed keypoint coordinates, relative translation, and relative rotation
         """
-        sample = self.samples[idx]
-    
-        # use LightGlue load_image function to load images as torch.Tensors
-        img_0 = load_image(sample['img0_path'])
-        img_1 = load_image(sample['img1_path'])
+        sample = torch.load(self.samples[idx])
 
-        # load poses
-        poses = np.loadtxt(sample['pose_file'])
-        i, j = sample['pose_indices']
-        pose_0, pose_1 = poses[i], poses[j]
-
-        # get coordinates of matched keypoints
-        kpts_coords = self.feature_matcher.match_img_pair(img_0, img_1)
-
-        # convert poses to transformation matrices
-        transformation_mat_0 = self.pose_transforms.pose_to_mat(pose_0[:3], pose_0[3:])
-        transformation_mat_1 = self.pose_transforms.pose_to_mat(pose_1[:3], pose_1[3:])
-
-        # get relative pose
-        rel_translation, rel_rot_six_d = self.pose_transforms.get_relative_pose(transformation_mat_0, transformation_mat_1)
-
-        # convert rel_translation from np array to torch.Tensor of type float32
-        rel_translation = torch.from_numpy(rel_translation).to(self.device).float()
-        # convert rel_rot_six_d from list to torch.Tensor of type float32
-        rel_rot_six_d = torch.tensor(rel_rot_six_d).to(self.device).float()
-
-        return kpts_coords.float(), rel_translation, rel_rot_six_d
+        return sample['kpts_coords'], sample['rel_translation'], sample['rel_rot_six_d']
