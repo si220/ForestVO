@@ -22,7 +22,7 @@ class PositionalEncoding(nn.Module):
         return x + self.pe[:x.size(0)]
 
 class PoseEstimationTransformer(nn.Module):
-    def __init__(self, input_dim=4, d_model=128, nhead=2, num_encoder_layers=2, dim_feedforward=256, dropout=0.1):
+    def __init__(self, input_dim=4, d_model=128, nhead=4, num_encoder_layers=4, dim_feedforward=256, dropout=0.1):
         super().__init__()
         self.input_projection = nn.Linear(input_dim, d_model)
         self.pos_encoder = PositionalEncoding(d_model)
@@ -34,6 +34,7 @@ class PoseEstimationTransformer(nn.Module):
     def forward(self, src_list, masks):
         translations = []
         rotations = []
+        
         for src, mask in zip(src_list, masks):
             src = self.input_projection(src).unsqueeze(1)
             src = self.pos_encoder(src)

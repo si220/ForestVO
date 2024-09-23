@@ -19,6 +19,10 @@ class PoseTransforms():
         transformation_mat[:3, :3] = rotation_mat
 
         return transformation_mat
+    
+    # convert 3x3 rotation matrix into quaternion
+    def rot_mat_to_quat(self, rot_mat):
+        return R.from_matrix(rot_mat).as_quat()
 
     # compute relative transformation between 2 transformation matrices
     def get_relative_pose(self, T0, T1):
