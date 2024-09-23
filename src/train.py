@@ -82,7 +82,7 @@ def train_model(model, train_loader, val_loader, device, optimiser, num_epochs=1
     os.makedirs(checkpoint_dir, exist_ok=True)
 
     # initialise tensorboard writer (append mode to avoid overwriting existing data)
-    writer = SummaryWriter(log_dir="experiments/relative_pose_regression", purge_step=start_epoch * len(train_loader))
+    writer = SummaryWriter(log_dir="experiments/forest_lg", purge_step=start_epoch * len(train_loader))
 
     for epoch in range(start_epoch, num_epochs):
         model.train()
@@ -191,8 +191,8 @@ if __name__ == "__main__":
     print(f'device = {device}')
 
     # check if the preprocessed directories exist, preprocess only if they don't
-    preprocessed_train_dir = "../Datasets/train/"
-    preprocessed_val_dir = "../Datasets/val/"
+    preprocessed_train_dir = "../Datasets/forest_lg_train/"
+    preprocessed_val_dir = "../Datasets/forest_lg_val/"
 
     if not os.path.exists(preprocessed_train_dir):
         print("preprocessing training dataset")
@@ -229,7 +229,7 @@ if __name__ == "__main__":
     val_dataset = PoseEstimationDataset(preprocessed_dir=preprocessed_val_dir, preprocess=False)
 
     # initialise dataloaders
-    batch_size = 256
+    batch_size = 128
     train_loader = DataLoader(dataset=train_dataset, batch_size=batch_size, shuffle=True, collate_fn=collate)
     val_loader = DataLoader(dataset=val_dataset, batch_size=batch_size, shuffle=False, collate_fn=collate)
 
@@ -242,8 +242,8 @@ if __name__ == "__main__":
     print(f'num_trainable_params = {num_params}')
 
     # initialise optimiser and load the model
-    optimiser = torch.optim.Adam(model.parameters(), lr=1e-4, weight_decay=1e-5)
-    checkpoint_path = "checkpoints/epoch_100.pth"
+    optimiser = torch.optim.Adam(model.parameters(), lr=1e-3, weight_decay=1e-5)
+    checkpoint_path = "checkpoints/epoch_49.pth"
     start_epoch = 0
 
     if os.path.exists(checkpoint_path):
@@ -251,4 +251,4 @@ if __name__ == "__main__":
         start_epoch = start_epoch if start_epoch is not None else 0
 
     # train model
-    train_model(model, train_loader, val_loader, device, optimiser, num_epochs=200, start_epoch=start_epoch, beta=100)
+    train_model(model, train_loader, val_loader, device, optimiser, num_epochs=100, start_epoch=start_epoch, beta=100)
