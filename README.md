@@ -1,5 +1,20 @@
 # ForestVO
-This repository contains the implementation of the pose estimation model for the paper we have submitted to the IEEE Robotics and Automation Letters journal titled ForestVO: Enhancing Visual Odometry in Forest Environments through ForestGlue
+This repo contains the implementation of the pose estimation model for the "**ForestVO: Enhancing Visual Odometry in Forest Environments through ForestGlue**" paper which has been accepted for publication in the IEEE Robotics and Automation Letters journal. The main repo for the project which contains the ForestGlue implementation can be found [here](https://github.com/AerialRoboticsGroup/forest-vo)
+
+## Publication
+If you use this code in an academic context, please cite the following RAL 2025 paper.
+
+T. Pritchard (equal contribution), S. Ijaz (equal contribution), R. Clark, and BB. Kocer, "**ForestVO: Enhancing Visual Odometry in Forest Environments through ForestGlue**," Robotics and Automation Letters (RA-L). 2025.
+
+```
+@article{pritchard2025forestvo,
+  title={ForestVO: Enhancing Visual Odometry in Forest Environments through ForestGlue},
+  author={Pritchard, Thomas and Ijaz, Saifullah and Clark, Ronald and Kocer, Basaran Bahadir},
+  journal={IEEE Robotics and Automation Letters},
+  year={2025},
+  publisher={IEEE}
+}
+```
 
 ## Installation
 Clone the repo recursively:
